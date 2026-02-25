@@ -7,7 +7,9 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/alexflint/go-arg"
 	"github.com/trygrit/gha-terraform-commentor/internal/gh"
@@ -154,7 +156,10 @@ func main() {
 
 	// Stream output to stdout
 	var output strings.Builder
+	var wg sync.WaitGroup
+	wg.Add(2)
 	go func() {
+		defer wg.Done()
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
 			line := scanner.Text()
@@ -163,6 +168,7 @@ func main() {
 		}
 	}()
 	go func() {
+		defer wg.Done()
 		scanner := bufio.NewScanner(stderr)
 		for scanner.Scan() {
 			line := scanner.Text()
@@ -178,6 +184,8 @@ func main() {
 			exitCode = fmt.Sprintf("%d", exitErr.ExitCode())
 		}
 	}
+	// Ensure scanner goroutines have finished writing before reading output
+	wg.Wait()
 
 	searchPattern := fmt.Sprintf("### Terraform `%s`", args.Command)
 	ok, err := client.DeleteExistingComment(ctx, event.Repository.Owner.Login, event.Repository.Name, event.PullRequest.Number, searchPattern)
@@ -203,6 +211,16 @@ func main() {
 	}
 
 	logger.Debug("Successfully posted comment to PR")
+
+	// Propagate terraform's exit code after posting the PR comment.
+	// Exit code 2 for "plan" means "changes detected" and is not a failure.
+	if exitCode != "0" {
+		exitCodeInt, _ := strconv.Atoi(exitCode)
+		if command == terraform.CommandPlan && exitCodeInt == 2 {
+			os.Exit(0)
+		}
+		os.Exit(exitCodeInt)
+	}
 }
 
 // fatalError logs the error message and exits the program with error code 1

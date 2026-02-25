@@ -14,7 +14,7 @@ func LoadTemplates() (*template.Template, error) {
 	tmpl := template.New("")
 
 	// List of required templates
-	requiredTemplates := []string{"plan_success.tmpl", "plan_failure.tmpl", "general.tmpl"}
+	requiredTemplates := []string{"plan_success.tmpl", "plan_failure.tmpl", "apply_success.tmpl", "apply_failure.tmpl", "general.tmpl"}
 
 	for _, name := range requiredTemplates {
 		content, err := templates.ReadFile(name)
