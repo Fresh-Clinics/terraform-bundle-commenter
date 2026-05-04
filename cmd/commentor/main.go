@@ -238,7 +238,7 @@ func fatalError(s string, err error) {
 // Config holds all configuration from environment variables
 type Config struct {
 	TerraformWorkspace string `env:"TERRAFORM_WORKSPACE" envDefault:"default"`
-	DetailsState       string `env:"DETAILS_STATE" envDefault:"open"`
+	DetailsState       string `env:"DETAILS_STATE" envDefault:"closed"`
 	Debug              bool   `env:"DEBUG" envDefault:"false"`
 }
 
